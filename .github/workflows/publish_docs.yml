@@ -1,0 +1,100 @@
+name: Publish Docs
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Create build directory structure
+        run: |
+          mkdir -p docs-build
+          mkdir -p docs-build/payment
+          mkdir -p docs-build/atm
+
+      - name: Install dependencies and generate docs (payment)
+        run: |
+          npm install
+          npx compodoc -p tsconfig.json -d docs --silent
+          cp -r docs/* ../docs-build/payment/
+        working-directory: ./payment
+
+      - name: Install dependencies and generate docs (atm)
+        run: |
+          npm install
+          npx compodoc -p tsconfig.json -d docs --silent
+          cp -r docs/* ../docs-build/atm/
+        working-directory: ./atm
+
+      - name: Create index.html with project links
+        run: |
+          echo '<!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Documentación del Proyecto</title>
+            <style>
+              body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: #f9f9f9;
+                color: #333;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                padding: 20px;
+              }
+              h1 {
+                margin-bottom: 20px;
+              }
+              .button-container {
+                display: flex;
+                gap: 20px;
+              }
+              .button-container a {
+                text-decoration: none;
+                padding: 15px 30px;
+                background-color: #007acc;
+                color: white;
+                border-radius: 8px;
+                font-size: 16px;
+                transition: background-color 0.3s ease;
+              }
+              .button-container a:hover {
+                background-color: #005fa3;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Documentación del Proyecto</h1>
+            <div class="button-container">
+              <a href="payment/index.html" target="_blank">💳 Payment</a>
+              <a href="atm/index.html" target="_blank">🏧 ATM</a>
+            </div>
+          </body>
+          </html>' > docs-build/index.html
+
+      - name: Create .nojekyll file
+        run: touch docs-build/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs-build
+          publish_branch: gh-pages
+          force_orphan: true
