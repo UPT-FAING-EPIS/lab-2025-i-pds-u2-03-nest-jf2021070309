@@ -1,0 +1,68 @@
+name: Create GitHub Release (payment & atm)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    name: Build and GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ========== PAYMENT ==========
+      - name: Install dependencies (payment)
+        run: npm ci
+        working-directory: ./payment
+
+      - name: Build project (payment)
+        run: npm run build
+        working-directory: ./payment
+
+      - name: Pack project (payment)
+        run: npm pack
+        working-directory: ./payment
+
+      # ========== ATM ==========
+      - name: Install dependencies (atm)
+        run: npm ci
+        working-directory: ./atm
+
+      - name: Build project (atm)
+        run: npm run build
+        working-directory: ./atm
+
+      - name: Pack project (atm)
+        run: npm pack
+        working-directory: ./atm
+
+      # ========== GITHUB RELEASE ==========
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            🚀 Nuevo release generado automáticamente.
+            - Versión: ${{ github.ref_name }}
+            - Fecha: ${{ github.event.head_commit.timestamp }}
+            - Proyectos incluidos:
+              - payment
+              - atm
+          files: |
+            payment/*.tgz
+            atm/*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
