@@ -1,0 +1,100 @@
+name: Package and Publish to GitHub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-build-sonar-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (payment)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@${{ secrets.GH_USERNAME }}'
+
+      # ---------- payment ----------
+      - name: Install dependencies (payment)
+        run: npm ci
+        working-directory: ./payment
+
+      - name: Run tests with coverage (payment)
+        run: npm run test:cov
+        working-directory: ./payment
+
+      - name: Run SonarCloud analysis (payment)
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=jaimeflores_lab3-u2-payment
+            -Dsonar.organization=jaimeflores
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.sources=src
+            -Dsonar.exclusions=**/*.spec.ts
+            -Dsonar.tests=src
+            -Dsonar.test.inclusions=**/*.spec.ts
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+          projectBaseDir: ./payment
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Build project (payment)
+        run: npm run build
+        working-directory: ./payment
+
+      - name: Publish package to GitHub Packages npm-nuget (payment)
+        run: npm publish
+        working-directory: ./payment
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # ---------- atm ----------
+      - name: Set up Node.js (atm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@${{ secrets.GH_USERNAME }}'
+
+      - name: Install dependencies (atm)
+        run: npm ci
+        working-directory: ./atm
+
+      - name: Run tests with coverage (atm)
+        run: npm run test:cov
+        working-directory: ./atm
+
+      - name: Run SonarCloud analysis (atm)
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=jaimeflores_lab3-u2-atm
+            -Dsonar.organization=jaimeflores
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.sources=src
+            -Dsonar.exclusions=**/*.spec.ts
+            -Dsonar.tests=src
+            -Dsonar.test.inclusions=**/*.spec.ts
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+          projectBaseDir: ./atm
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Build project (atm)
+        run: npm run build
+        working-directory: ./atm
+
+      - name: Publish package to GitHub Packages npm-nuget (atm)
+        run: npm publish
+        working-directory: ./atm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
